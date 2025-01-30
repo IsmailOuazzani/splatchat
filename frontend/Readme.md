@@ -1,4 +1,4 @@
-# Setup
+# Android
 ### Docker container
 To prototype the app on Expo Go, or to build the Android binaries, build (once) then run the Docker container from this directory:
 ```
@@ -21,7 +21,6 @@ By default, you will be connected to the "production" api. If it's down, please 
 For local development that requires running and modifying the backend, switch it to the local ip address of your computer.
 - The second is the path of the visualiser. Go to `splatchat/components/Visualize.js` and uncomment *1* of the relevant options. 
 
-# Develop
 ### Running Expo Go
 The Expo Go app allows quick development, on the phone, without having to build binaries.
 
@@ -33,7 +32,6 @@ Scan the QR code with your phone (requires the Expo Go app to already be install
 If you did not run this within the same container before, you will have to login with your expo credentials, just follow the cli prompts.
 To stop, use Ctrl+C.
 
-# Building binaries
 ### Building the Android Binaries
 Within the container, run:
 ```
