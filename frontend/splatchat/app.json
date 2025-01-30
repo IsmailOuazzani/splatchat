@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "splatchat",
+    "slug": "splatchat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.splatchat"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "678d1569-7e5f-4508-b3e3-7cf42e7ab99d"
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-build-properties",
+      {
+        "android": {
+            "usesCleartextTraffic": true
+          }
+      }
+      ]
+      
+    ]
+  }
+}

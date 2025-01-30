@@ -1,0 +1,42 @@
+# Setup
+### Docker container
+To prototype the app on Expo Go, or to build the Android binaries, build (once) then run the Docker container from this directory:
+```
+docker build -t splatchat-frontend .
+docker run -it --rm -v ./splatchat:/splatchat --network host splatchat-frontend
+```
+
+**A note on secrets**: the keystore file in `splatchat` (and the credentials, which are also in the makefile) are supposed to be a secret. I don't thing its that big of a deal for now, just don't share them. We will get new ones before publishing to whatever store.
+
+### Installing dependencies
+Only required once because they are saved to the `splatchat` directory which is mounted in the container. Within the container run:
+```
+npm install
+```
+
+### Manual steps to modify in the code
+Unfortunately, there are some manual steps needed to make the code run.
+- The first is the selection of the api endpoint, in `splatchat/api/constants.js`
+By default, you will be connected to the "production" api. If it's down, please let Ismail know.
+For local development that requires running and modifying the backend, switch it to the local ip address of your computer.
+- The second is the path of the visualiser. Go to `splatchat/components/Visualize.js` and uncomment *1* of the relevant options. 
+
+# Develop
+### Running Expo Go
+The Expo Go app allows quick development, on the phone, without having to build binaries.
+
+Within the container, run:
+```
+make expogo
+```
+Scan the QR code with your phone (requires the Expo Go app to already be installed).
+If you did not run this within the same container before, you will have to login with your expo credentials, just follow the cli prompts.
+To stop, use Ctrl+C.
+
+# Building binaries
+### Building the Android Binaries
+Within the container, run:
+```
+make build-android
+```
+The output apk should be named `universal.apk`. Transfer it to your phone any way you want (google drive, whatsapp) and install it.
