@@ -97,6 +97,8 @@ export default function CameraScreen() {
         return;
       }
 
+      //TODO: use react-native-compressor to compress the video before sending
+
       const formData = new FormData();
       formData.append('file', {
         uri: videoUri,
@@ -108,12 +110,11 @@ export default function CameraScreen() {
 
       setShowReceiverList(false);
       setVideoUri(null);
-
       url = API_URL + '/send_splat';
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${user.token}`,
         },
         body: formData,
@@ -129,7 +130,6 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.error('Error during upload:', error);
-      Alert.alert('Error', 'An unexpected error occurred.');
     }
   };
 
