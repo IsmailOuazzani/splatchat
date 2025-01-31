@@ -44,8 +44,9 @@ Then click on your instance > Edit > Add Item button (in the ssh key section) an
 And then, pray Ismail is awake cuz there no way Im writing a makefile for this rn.
 
 ## Deploying to provisionned Google Cloud compute instance
-If you have already provisionned the compute instance, create an ENV file with the variables for the Makefile.
-Ask Ismail to send it (its a secret 😉).
+You need to have 2 env files to deploy the API. The first, in this directory contains information to connect to the GCP instance.
+The second, in the `api` directory, contains the secrets used by the API.
+Ask Ismail to send them (they are secret 😉).
 
 Then run:
 ```
@@ -57,3 +58,38 @@ You can observe the logs of the service using:
 ```
 make tail-api
 ```
+
+
+# Splat Worker
+This component is responsible for the processing of user data into gaussian splats. Currently, we run a [serverless RunPod](https://www.runpod.io/serverless-gpu) endpoint to do so.
+
+## Local:
+Start by building the gaussian splatting image (once):
+```
+docker build -t gsplat ./splatworker/Dockerfile.gsplat
+```
+
+To do some local testing and development (requires access to a GPU), navigate to the `splatworker` directory, create the appropriate directories and run the container:
+```
+mkdir results input out
+
+docker run -it --rm --gpus all \
+		--name gsplat \
+		-v ./scripts:/ws/scripts \
+		-v ./out:/ws/out \
+        -v ./results:/results \
+		-v ./input:/ws/in \
+		-p 8080:8080 \
+    --shm-size 16gb \
+		gsplat-dev
+```
+
+You can now place the video to process in the input folder from your host machine, then run the following from the container:
+```
+python run_pipeline.py
+```
+
+## Deploy serverless
+Will add instructions later
+
+

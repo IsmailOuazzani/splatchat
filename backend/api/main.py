@@ -10,7 +10,7 @@ import ffmpeg
 import subprocess
 import json
 import os
-
+from dotenv import  load_dotenv
 from db import (check_credentials, 
                 load_users, 
                 load_conversation, 
@@ -26,8 +26,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-runpod.api_key = "insert API KEY here" 
+load_dotenv()
+runpod.api_key = os["RUNPOD_API_KEY"]
 RUNPOD_ENDPOINT_ID = "50kuuew0qyb2yx"
 
 MAX_VIDEO_SIZE_MB = 10

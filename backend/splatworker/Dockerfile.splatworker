@@ -1,0 +1,8 @@
+FROM gsplat:latest
+
+RUN pip install --no-cache-dir runpod plyfile
+COPY ./scripts ./scripts
+WORKDIR /ws/scripts
+COPY /rp_handler.py /ws/scripts/rp_handler.py
+
+CMD ["python3", "-u", "rp_handler.py"]
