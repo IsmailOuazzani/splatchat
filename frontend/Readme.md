@@ -1,8 +1,12 @@
 # Android
 ### Docker container
-To prototype the app on Expo Go, or to build the Android binaries, build (once) then run the Docker container from this directory:
+To prototype the app on Expo Go, or to build the Android binaries, build (once):
 ```
 docker build -t splatchat-frontend .
+```
+
+To run the container:
+```
 docker run -it --rm -v ./splatchat:/splatchat --network host splatchat-frontend
 ```
 

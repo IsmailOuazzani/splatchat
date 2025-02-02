@@ -10,8 +10,8 @@ export default function Visualizer({ isVisible, onClose, url }) {
       <View style={styles.webviewContainer}>
         <WebView
           originWhitelist={['*']}
-          // source={require('../assets/splat.html')} // Uncomment for Expo Go
-          source={{ uri: 'file:///android_asset/splat.html' }} // Uncomment for build
+          source={require('../assets/splat.html')} // Uncomment for Expo Go
+          // source={{ uri: 'file:///android_asset/splat.html' }} // Uncomment for build
           style={styles.webview}
           startInLoadingState={true}
           injectedJavaScriptBeforeContentLoaded={injectedJavaScript}

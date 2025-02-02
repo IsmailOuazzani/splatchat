@@ -1,0 +1,6 @@
+fastapi[standard]
+python-multipart
+pandas
+runpod
+ffmpeg
+python-dotenv
