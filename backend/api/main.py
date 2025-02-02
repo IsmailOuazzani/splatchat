@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, Depends, Header, File, UploadFile, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uuid
@@ -141,10 +141,40 @@ async def get_video(filename: str, x_api_key: str = Header(None)):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found.")
     
-    return FileResponse(file_path, media_type="video/mp4")
+    return FileResponse(file_path, media_type="video/mp4")    
+
+def video_to_splat(video_filename: str, username: str, conversation_ids: list[str]):
+    input_data = {"filename": video_filename}
+    runpod_response = runpod.Endpoint(RUNPOD_ENDPOINT_ID).run(request_input=input_data)
+    output = runpod_response.output(timeout=800) # TODO: implement myself with exponential backoff
+
+    preview_filename = f"{video_filename}.jpg"
+    preview_image = Path(SPLATS_DIR) / preview_filename
+    video_file = Path("data") / video_filename
+
+    # Generate preview image
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", str(video_file),
+        "-vf", "select=eq(n\,0)",  
+        "-q:v", "2",
+        str(preview_image)
+    ], check=True)
+
+    # Save splat file
+    splat_content = output["file_content"]
+    splat_name = f"{video_filename}.splat"
+    splat_path = Path(SPLATS_DIR) / splat_name
+    splat_path.write_bytes(base64.b64decode(splat_content))
+
+    # Update conversations
+    for conversation_id in conversation_ids:
+        write_splat_message(conversation_id, username, preview=preview_filename, url=splat_name)
 
 @app.post("/send_splat")
 async def send_splat(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...), 
     conversation_ids: list[str] = Form(...),
     username: str = Depends(get_current_user)
@@ -159,45 +189,7 @@ async def send_splat(
     with video_file.open("wb") as f:
         f.write(file.file.read())
 
-    input_data = {
-        "filename": video_filename
-    }
-    print("Sending video to RunPod")
-    print(f"Request: {input_data}")
-    runpod_response = runpod.Endpoint(RUNPOD_ENDPOINT_ID).run(request_input=input_data)
-    output = runpod_response.output(timeout=400)
-
-    if output["status"] != "success":
-        print(f"RunPod error: {output}")
-        raise HTTPException(status_code=500, detail="Error processing video")
-    
-    preview_filename = f"{video_name}.jpg"
-    preview_image = Path(SPLATS_DIR) / preview_filename
-    subprocess.run([
-        "ffmpeg",
-        "-y",
-        "-i", str(video_file),
-        "-vf", "select=eq(n\,0)",  # Select only the first frame
-        "-q:v", "2",               # High-quality output
-        str(preview_image)
-    ], check=True)
-
-    splat_content = output["file_content"]
-    splat_name = f"{video_name}.splat"
-    splat_path = Path(SPLATS_DIR) / splat_name
-    splat_path.write_bytes(base64.b64decode(splat_content))
-
-    # For conversation_ids submitted as a single list, ensure they are split correctly
     conversation_ids = conversation_ids[0].split(",")
-    
-    for conversation_id in conversation_ids:
-        write_splat_message(
-            conversation_id, 
-            username,
-            preview=preview_filename,
-            url=splat_name
-        )
+    background_tasks.add_task(video_to_splat, video_filename, username, conversation_ids)
 
-    return {
-        "message": f"File {file.filename} of size {file.size} compressed (if needed) and uploaded successfully"
-    }
+    return {"message": f"File {file.filename} uploaded. Processing will happen in the background."}
