@@ -3,13 +3,21 @@ import base64
 import uuid
 from pathlib import Path
 from run_pipeline import main
+import requests
+import os
 #TODO: add logging of request ID to root logger
 
 def handler(event):
     print(event)
     try:
-        video_base64 = event['input']['file']['content']
-        video_bytes = base64.b64decode(video_base64)
+        filename = event['input']['filename']
+        splatchat_api_url = "https://api.splatchat.xyz"
+        splatchat_api_key = os.environ["SPLATCHAT_API_KEY"]
+
+        video_url = f"{splatchat_api_url}/videos/{filename}"
+        headers = {"x-api-key": splatchat_api_key}
+        response = requests.get(video_url, headers=headers)
+        response.raise_for_status()
 
         unique_id = str(uuid.uuid4())
         video_path = Path(f"{unique_id}.mp4")
@@ -17,7 +25,7 @@ def handler(event):
         output_dir.mkdir(parents=True, exist_ok=True)
 
         with open(video_path, "wb") as video_file:
-            video_file.write(video_bytes)
+            video_file.write(response.content)
 
         ply_path = main(str(video_path), output_dir)
 

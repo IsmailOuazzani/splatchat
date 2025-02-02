@@ -90,6 +90,12 @@ python run_pipeline.py
 ```
 
 ## Deploy serverless
-Will add instructions later
-
-
+Assuming you already buit the gsplat image, build the runpod handler:
+```
+cd splatworker
+docker build -t ismailoz/splatchat -f Dockerfile.splatworker .
+```
+Publish it to Docker hub
+```
+docker push ismailoz/splatchat
+```

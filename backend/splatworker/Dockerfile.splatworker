@@ -1,6 +1,6 @@
 FROM gsplat:latest
 
-RUN pip install --no-cache-dir runpod plyfile
+RUN pip install --no-cache-dir runpod plyfile requests
 COPY ./scripts ./scripts
 WORKDIR /ws/scripts
 COPY /rp_handler.py /ws/scripts/rp_handler.py

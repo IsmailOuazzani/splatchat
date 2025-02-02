@@ -112,8 +112,8 @@ export default function Conversation({ conversationID, onClose }) {
     } else if (item.type === 'splat') {
       return (
         <View style={[styles.messageContainer, containerStyle]}>
-          <TouchableOpacity onPress={() => handleSplatPress(item.url)} style={styles.splatWrapper}>
-            <Image source={{ uri: item.preview }} style={styles.splatPreview} />
+          <TouchableOpacity onPress={() => handleSplatPress(API_URL + '/splats/'+item.url)} style={styles.splatWrapper}>
+            <Image source={{ uri: API_URL + '/splats/' + item.preview }} style={styles.splatPreview} />
             <Ionicons
               name="cube"
               size={24}

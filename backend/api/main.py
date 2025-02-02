@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, Header, File, UploadFile, Form
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uuid
 from pydantic import BaseModel
@@ -6,7 +7,6 @@ import runpod
 from pathlib import Path
 import base64
 from fastapi.middleware.cors import CORSMiddleware
-import ffmpeg
 import subprocess
 import json
 import os
@@ -27,14 +27,16 @@ app.add_middleware(
 )
 
 load_dotenv()
-runpod.api_key = os["RUNPOD_API_KEY"]
+runpod.api_key = os.environ["RUNPOD_API_KEY"]
 RUNPOD_ENDPOINT_ID = "50kuuew0qyb2yx"
 
 MAX_VIDEO_SIZE_MB = 10
 MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024
 
-splats_dir = "splats" #TODO: auth through middleware
-app.mount("/splats", StaticFiles(directory=splats_dir), name="splats")
+SPLATS_DIR = "splats" #TODO: auth through middleware
+app.mount("/splats", StaticFiles(directory=SPLATS_DIR), name="splats")
+
+VIDEO_DIR = Path("data")
 
 TOKEN_FILE = Path("tokens.json")
 
@@ -130,13 +132,16 @@ async def send_message(conversation_id: str, message: str, username: str = Depen
     return {"message": "Message sent successfully"}
 
 
-def compress_video(input_path: Path, output_path: Path):
-    (
-        ffmpeg
-        .input(str(input_path))
-        .output(str(output_path), vcodec='libx264', crf=28, preset='slow', maxrate='1M', bufsize='2M')
-        .run(overwrite_output=True)
-    )
+@app.get("/videos/{filename}")
+async def get_video(filename: str, x_api_key: str = Header(None)):
+    if x_api_key != os.environ.get("SPLATCHAT_API_KEY"):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+    
+    file_path = VIDEO_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found.")
+    
+    return FileResponse(file_path, media_type="video/mp4")
 
 @app.post("/send_splat")
 async def send_splat(
@@ -145,59 +150,41 @@ async def send_splat(
     username: str = Depends(get_current_user)
 ):
     print(f"Received splat request from {username} for {conversation_ids}")
+
     video_name = uuid.uuid4()
     video_extension = file.filename.split(".")[-1]
-    
-    video_file = Path("data") / f"{video_name}.{video_extension}"
+    video_filename = f"{video_name}.{video_extension}"
+    video_file = Path("data") / video_filename
+
     with video_file.open("wb") as f:
         f.write(file.file.read())
 
-    max_size_bytes = 10 * 1024 * 1024
-    if video_file.stat().st_size > max_size_bytes:
-        compressed_file = Path("data") / f"{video_name}_compressed.{video_extension}"
-        subprocess.run([
-            "ffmpeg",
-            "-y",                  
-            "-i", str(video_file),
-            "-vcodec", "libx264",
-            "-crf", "30",         
-            "-preset", "faster",  
-            str(compressed_file)
-        ], check=True)
-        if compressed_file.stat().st_size > max_size_bytes:
-            return {"message": "Video is too large even after compression."}
-        final_file = compressed_file
-    else:
-        final_file = video_file
-
-    video_string = base64.b64encode(final_file.read_bytes()).decode("utf-8")
-    print(f"Num bytes to send to runpod: {len(video_string)}")
-
-    preview_image = Path(splats_dir) / f"{video_name}.jpg"
-    subprocess.run([
-        "ffmpeg",
-        "-y",
-        "-i", str(final_file),
-        "-vf", "select=eq(n\,0)",  # Select only the first frame
-        "-q:v", "2",               # High-quality output
-        str(preview_image)
-    ], check=True)
-
     input_data = {
-        "file": {
-            "name": f"{video_name}.{video_extension}",
-            "content": video_string
-        }
+        "filename": video_filename
     }
+    print("Sending video to RunPod")
+    print(f"Request: {input_data}")
     runpod_response = runpod.Endpoint(RUNPOD_ENDPOINT_ID).run(request_input=input_data)
     output = runpod_response.output(timeout=400)
 
     if output["status"] != "success":
         print(f"RunPod error: {output}")
+        raise HTTPException(status_code=500, detail="Error processing video")
+    
+    preview_filename = f"{video_name}.jpg"
+    preview_image = Path(SPLATS_DIR) / preview_filename
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", str(video_file),
+        "-vf", "select=eq(n\,0)",  # Select only the first frame
+        "-q:v", "2",               # High-quality output
+        str(preview_image)
+    ], check=True)
 
     splat_content = output["file_content"]
     splat_name = f"{video_name}.splat"
-    splat_path = Path(splats_dir) / splat_name
+    splat_path = Path(SPLATS_DIR) / splat_name
     splat_path.write_bytes(base64.b64decode(splat_content))
 
     # For conversation_ids submitted as a single list, ensure they are split correctly
@@ -207,8 +194,8 @@ async def send_splat(
         write_splat_message(
             conversation_id, 
             username,
-            preview=f"http://10.0.0.26:8000/splats/{video_name}.jpg",
-            url=f"http://10.0.0.26:8000/splats/{splat_name}"
+            preview=preview_filename,
+            url=splat_name
         )
 
     return {
